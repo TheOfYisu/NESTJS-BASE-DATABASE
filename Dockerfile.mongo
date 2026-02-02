@@ -1,0 +1,30 @@
+FROM mongo:7
+
+# Copiar scripts de inicialización JavaScript
+COPY ./mongo/generated/*.js /docker-entrypoint-initdb.d/
+
+# Crear wrapper del entrypoint que limpia variables después de inicializar
+RUN echo '#!/bin/bash' > /usr/local/bin/secure-entrypoint.sh && \
+    echo 'set -e' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '# Ejecutar el entrypoint original de mongo' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '/usr/local/bin/docker-entrypoint.sh mongod &' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'MONGO_PID=$!' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '# Esperar a que mongodb inicialice' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'sleep 10' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '# Limpiar variables de entorno sensibles del proceso' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'unset MONGO_INITDB_ROOT_USERNAME' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'unset MONGO_INITDB_ROOT_PASSWORD' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'unset MONGO_INITDB_DATABASE' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'unset MONGO_USER_APP' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'unset MONGO_PASSWORD_APP' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '# Esperar a que el proceso de mongodb termine' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'wait $MONGO_PID' >> /usr/local/bin/secure-entrypoint.sh && \
+    chmod +x /usr/local/bin/secure-entrypoint.sh && \
+    chmod 644 /docker-entrypoint-initdb.d/*.js
+
+ENTRYPOINT ["/usr/local/bin/secure-entrypoint.sh"]
+CMD []

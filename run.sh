@@ -32,36 +32,50 @@ set +a
 echo "Variables de entorno cargadas en el script"
 echo ""
 
+# Archivos de postgresql
+echo "Archivos de PostgreSQL:"
+
 # Generar archivos SQL desde templates
 echo "Paso 1: Generando archivos SQL desde templates..."
 ./generate-sql.sh
 echo ""
 
+
+# Archivos de MongoDB
+echo "Archivos de MongoDB:"
+# Generar scripts de MongoDB desde templates
+echo "Paso 2: Generando scripts de MongoDB desde templates..."
+./generate-mongo.sh
+echo ""
+
+
+
 # Detener contenedores existentes si los hay
-echo "Paso 2: Deteniendo contenedores existentes..."
+echo "Paso 3: Deteniendo contenedores existentes..."
 docker-compose down
 echo ""
 
 # Construir y levantar los contenedores
-echo "Paso 3: Construyendo y levantando contenedores..."
+echo "Paso 4: Construyendo y levantando contenedores..."
 docker-compose up -d --build
 echo ""
 
+# Esperar a que los servicios estén listos e inicialicen
+echo "Paso 5: Esperando a que los servicios estén listos e inicialicen..."
+sleep 15
+echo ""
+
 # Limpiar archivos generados
-echo "Paso 4: Limpiando archivos SQL generados..."
+echo "Paso 6: Limpiando archivos generados..."
 rm -rf postgres/generated
-echo "Archivos SQL generados eliminados"
+rm -rf mongo/generated
+echo "Archivos generados eliminados"
 echo ""
 
 # Eliminar .env
-echo "Paso 5: Eliminando archivo .env..."
+echo "Paso 7: Eliminando archivo .env..."
 #rm -f .env # Comentado para evitar eliminar el .env durante pruebas
 echo "Archivo .env eliminado"
-echo ""
-
-# Esperar a que los servicios estén listos
-echo "Esperando a que los servicios estén listos..."
-sleep 5
 echo ""
 
 # Mostrar estado de los contenedores

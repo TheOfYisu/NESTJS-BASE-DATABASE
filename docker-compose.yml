@@ -18,30 +18,35 @@ services:
     networks:
       - nestjs_base
 
-  # mongo:
-  #   image: mongo:7
-  #   container_name: nestjs_base_mongo
-  #   restart: always
-  #   ports:
-  #     - "${MONGO_PORT}:27017"
-  #   environment:
-  #     MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
-  #     MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
-  #     MONGO_INITDB_DATABASE: ${MONGO_DB}
-  #   volumes:
-  #     - nestjs_base_mongo_data:/data/db
-  #     - nestjs_base_mongo_config:/data/configdb
-  #     - ./mongo:/docker-entrypoint-initdb.d
+  mongo:
+    build:
+      context: .
+      dockerfile: Dockerfile.mongo
+    container_name: nestjs_base_mongo
+    restart: always
+    ports:
+      - "${MONGO_PORT}:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB}
+      MONGO_USER_APP: ${MONGO_USER_APP}
+      MONGO_PASSWORD_APP: ${MONGO_PASSWORD_APP}
+    volumes:
+      - nestjs_base_mongo_data:/data/db
+      - nestjs_base_mongo_config:/data/configdb
+      - ./mongo/generated:/docker-entrypoint-initdb.d:ro
+    networks:
+      - nestjs_base
 
 volumes:
   nestjs_base_pg_data:
     name: nestjs_base_pg_data
 
-  # nestjs_base_mongo_data:
-  #   name: nestjs_base_mongo_data
-
-  # nestjs_base_mongo_config:
-  #   name: nestjs_base_mongo_config
+  nestjs_base_mongo_data:
+    name: nestjs_base_mongo_data
+  nestjs_base_mongo_config:
+    name: nestjs_base_mongo_config
 
 networks:
   nestjs_base:
