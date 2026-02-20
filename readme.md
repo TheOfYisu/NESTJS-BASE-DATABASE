@@ -19,8 +19,7 @@ Este proyecto proporciona un entorno pre-configurado de bases de datos para apli
 El proyecto crea automáticamente tres schemas separados:
 
 1. **CORE** - Funcionalidad principal de la aplicación
-2. **AUDIT** - Sistema de auditoría y trazabilidad
-3. **AUTH** - Gestión de autenticación y autorización
+2. **AUTH** - Gestión de autenticación y autorización
 
 Cada schema tiene:
 
