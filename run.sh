@@ -48,32 +48,39 @@ echo "Paso 2: Generando scripts de MongoDB desde templates..."
 ./generate-mongo.sh
 echo ""
 
+# Archivos de Redis
+echo "Archivos de Redis:"
+# Generar scripts de Redis desde templates
+echo "Paso 3: Generando scripts de Redis desde templates..."
+./generate-redis.sh
+echo ""
 
 
 # Detener contenedores existentes si los hay
-echo "Paso 3: Deteniendo contenedores existentes..."
+echo "Paso 4: Deteniendo contenedores existentes..."
 docker-compose down
 echo ""
 
 # Construir y levantar los contenedores
-echo "Paso 4: Construyendo y levantando contenedores..."
+echo "Paso 5: Construyendo y levantando contenedores..."
 docker-compose up -d --build
 echo ""
 
 # Esperar a que los servicios estén listos e inicialicen
-echo "Paso 5: Esperando a que los servicios estén listos e inicialicen..."
+echo "Paso 6: Esperando a que los servicios estén listos e inicialicen..."
 sleep 15
 echo ""
 
 # Limpiar archivos generados
-echo "Paso 6: Limpiando archivos generados..."
+echo "Paso 7: Limpiando archivos generados..."
 rm -rf postgres/generated
 rm -rf mongo/generated
+rm -rf redis/generated
 echo "Archivos generados eliminados"
 echo ""
 
 # Eliminar .env
-echo "Paso 7: Eliminando archivo .env..."
+echo "Paso 8: Eliminando archivo .env..."
 #rm -f .env # Comentado para evitar eliminar el .env durante pruebas
 echo "Archivo .env eliminado"
 echo ""

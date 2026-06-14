@@ -39,6 +39,26 @@ services:
     networks:
       - nestjs_base
 
+  redis:
+    build:
+      context: .
+      dockerfile: Dockerfile.redis
+    container_name: nestjs_base_redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT}:6379"
+    environment:
+      REDIS_ROOT_USER: ${REDIS_ROOT_USER}
+      REDIS_ROOT_PASSWORD: ${REDIS_ROOT_PASSWORD}
+      REDIS_PORT: 6379
+      REDIS_USER_APP: ${REDIS_USER_APP}
+      REDIS_PASSWORD_APP: ${REDIS_PASSWORD_APP}
+    volumes:
+      - nestjs_base_redis_data:/data
+      - ./redis/generated:/docker-entrypoint-initdb.d:ro
+    networks:
+      - nestjs_base
+
 volumes:
   nestjs_base_pg_data:
     name: nestjs_base_pg_data
@@ -47,6 +67,9 @@ volumes:
     name: nestjs_base_mongo_data
   nestjs_base_mongo_config:
     name: nestjs_base_mongo_config
+
+  nestjs_base_redis_data:
+    name: nestjs_base_redis_data
 
 networks:
   nestjs_base:

@@ -1,0 +1,36 @@
+FROM redis:7-alpine
+
+# Copiar scripts de inicialización
+COPY ./redis/generated/*.sh /docker-entrypoint-initdb.d/
+
+# Crear wrapper del entrypoint que limpia variables después de inicializar
+RUN echo '#!/bin/sh' > /usr/local/bin/secure-entrypoint.sh && \
+    echo 'set -e' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '# Ejecutar redis-server en segundo plano' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'redis-server --requirepass "${REDIS_ROOT_PASSWORD}" --port "${REDIS_PORT}" &' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'REDIS_PID=$!' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '# Esperar a que redis inicialice' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'sleep 3' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '# Ejecutar scripts de inicialización si existen' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'for f in /docker-entrypoint-initdb.d/*.sh; do' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '  if [ -f "$f" ]; then' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '    echo "Ejecutando $f..."' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '    . "$f"' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '  fi' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'done' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '# Limpiar variables de entorno sensibles' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'unset REDIS_ROOT_USER' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'unset REDIS_ROOT_PASSWORD' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'unset REDIS_USER_APP' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'unset REDIS_PASSWORD_APP' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '# Esperar a que redis termine' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo 'wait $REDIS_PID' >> /usr/local/bin/secure-entrypoint.sh && \
+    chmod +x /usr/local/bin/secure-entrypoint.sh
+
+ENTRYPOINT ["/usr/local/bin/secure-entrypoint.sh"]
+CMD []
