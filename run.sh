@@ -1,103 +1,81 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# Crear directorio de logs
 LOG_DIR="logs/run"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/run-$(date +%Y%m%d-%H%M%S).log"
 
-# Redirigir toda la salida al log y a la consola
 exec > >(tee -a "$LOG_FILE") 2>&1
+
+trap 'echo "[ERROR] Falló en línea $LINENO"' ERR
 
 echo "==================================================="
 echo "=== Iniciando entorno de bases de datos ==="
 echo "=== Fecha: $(date) ==="
 echo "==================================================="
-echo ""
 
-# Verificar si existe el archivo .env
 if [ ! -f .env ]; then
-  echo "Error: No se encontró el archivo .env"
+  echo "Error: No se encontró .env"
   exit 1
 fi
 
 echo "Archivo .env encontrado"
-echo ""
 
-# Cargar variables del .env en el entorno del script
+# POSIX-safe
 set -a
-source .env
+. ./.env
 set +a
 
-echo "Variables de entorno cargadas en el script"
-echo ""
+echo "Variables cargadas"
 
-# Archivos de postgresql
-echo "Archivos de PostgreSQL:"
+# Detectar docker compose
+if command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE_CMD="docker-compose"
+else
+  COMPOSE_CMD="docker compose"
+fi
 
-# Generar archivos SQL desde templates
-echo "Paso 1: Generando archivos SQL desde templates..."
+echo "Usando: $COMPOSE_CMD"
+
+# Validar scripts
+for script in generate-sql.sh generate-mongo.sh generate-redis.sh; do
+  if [ ! -f "$script" ]; then
+    echo "Error: No existe $script"
+    exit 1
+  fi
+  chmod +x "$script"
+done
+
+echo "Paso 1: Generando SQL..."
 ./generate-sql.sh
-echo ""
 
-
-# Archivos de MongoDB
-echo "Archivos de MongoDB:"
-# Generar scripts de MongoDB desde templates
-echo "Paso 2: Generando scripts de MongoDB desde templates..."
+echo "Paso 2: Generando Mongo..."
 ./generate-mongo.sh
-echo ""
 
-# Archivos de Redis
-echo "Archivos de Redis:"
-# Generar scripts de Redis desde templates
-echo "Paso 3: Generando scripts de Redis desde templates..."
+echo "Paso 3: Generando Redis..."
 ./generate-redis.sh
-echo ""
 
+echo "Paso 4: Bajando contenedores..."
+$COMPOSE_CMD down --remove-orphans || true
 
-# Detener contenedores existentes si los hay
-echo "Paso 4: Deteniendo contenedores existentes..."
-docker-compose down
-echo ""
+echo "Paso 5: Build + Up..."
+$COMPOSE_CMD up -d --build
 
-# Construir y levantar los contenedores
-echo "Paso 5: Construyendo y levantando contenedores..."
-docker-compose up -d --build
-echo ""
+echo "Paso 6: Esperando inicialización..."
+sleep 20
 
-# Esperar a que los servicios estén listos e inicialicen
-echo "Paso 6: Esperando a que los servicios estén listos e inicialicen..."
-sleep 15
-echo ""
-
-# Limpiar archivos generados
 echo "Paso 7: Limpiando archivos generados..."
-rm -rf postgres/generated
-rm -rf mongo/generated
-rm -rf redis/generated
-echo "Archivos generados eliminados"
-echo ""
+rm -rf postgres/generated mongo/generated redis/generated
 
-# Eliminar .env
-echo "Paso 8: Eliminando archivo .env..."
-#rm -f .env # Comentado para evitar eliminar el .env durante pruebas
-echo "Archivo .env eliminado"
-echo ""
-
-# Mostrar estado de los contenedores
-echo "Estado de los contenedores:"
-docker-compose ps
-echo ""
+echo "Paso 8: Estado actual..."
+$COMPOSE_CMD ps
 
 echo "==================================================="
 echo "Entorno levantado correctamente"
 echo "==================================================="
-echo ""
+
 echo "Comandos útiles:"
-echo "  - Ver logs: docker-compose logs -f"
-echo "  - Detener: docker-compose down"
-echo "  - Reiniciar: docker-compose restart"
-echo ""
+echo "  Logs      -> $COMPOSE_CMD logs -f"
+echo "  Stop      -> $COMPOSE_CMD down"
+echo "  Restart   -> $COMPOSE_CMD restart"
 echo "Log guardado en: $LOG_FILE"
-echo "=== Fin: $(date) ==="

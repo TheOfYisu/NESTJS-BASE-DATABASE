@@ -1,56 +1,68 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# Crear directorio de logs y archivo de log con timestamp
 LOG_DIR="logs/generate-redis"
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/generate-redis-$(date +%Y%m%d-%H%M%S).log"
 
-# Redirigir toda la salida al log y a la consola
 exec > >(tee -a "$LOG_FILE") 2>&1
 
-echo "=== Inicio de generación Redis scripts: $(date) ==="
-echo "Log guardado en: $LOG_FILE"
-echo "Generando scripts desde templates..."
+trap 'echo "[ERROR] Falló en línea $LINENO"' ERR
 
-# Cargar variables del .env
+echo "=== Inicio generación Redis scripts: $(date) ==="
+
+if [ ! -f .env ]; then
+  echo "Error: .env no encontrado"
+  exit 1
+fi
+
+if ! command -v envsubst >/dev/null 2>&1; then
+  echo "Error: envsubst no instalado"
+  exit 1
+fi
+
 set -a
-source .env
+. ./.env
 set +a
 
 TEMPLATE_DIR="redis/template"
 OUTPUT_DIR="redis/generated"
 
-# Verificar que existan templates
 if [ ! -d "$TEMPLATE_DIR" ]; then
-  echo "Error: El directorio $TEMPLATE_DIR no existe"
+  echo "Error: No existe $TEMPLATE_DIR"
   exit 1
 fi
 
-# Contar archivos .sh.tpl
-template_count=$(ls -1 "$TEMPLATE_DIR"/*.sh.tpl 2>/dev/null | wc -l)
-if [ "$template_count" -eq 0 ]; then
-  echo "Advertencia: No se encontraron archivos .sh.tpl en $TEMPLATE_DIR"
-  echo "No hay templates para procesar"
+mkdir -p "$OUTPUT_DIR"
+rm -f "$OUTPUT_DIR"/*.sh
+
+shopt -s nullglob
+templates=("$TEMPLATE_DIR"/*.sh.tpl)
+
+if [ ${#templates[@]} -eq 0 ]; then
+  echo "No se encontraron templates"
   exit 0
 fi
 
-rm -rf "$OUTPUT_DIR"
-mkdir -p "$OUTPUT_DIR"
-
-for tpl in "$TEMPLATE_DIR"/*.sh.tpl; do
+for tpl in "${templates[@]}"; do
   filename=$(basename "$tpl" .sh.tpl)
   output="$OUTPUT_DIR/$filename.sh"
 
-  # Si existe el archivo output, eliminarlo
-  if [ -f "$output" ]; then
-    echo "Eliminando archivo anterior: $output"
-    rm -f "$output"
-  fi
-
   echo "Generando $output"
+
   envsubst < "$tpl" > "$output"
+
+  # CRLF -> LF (IMPORTANTE para Docker Linux)
+  sed -i 's/\r$//' "$output"
+
+  chmod +x "$output"
+
+  # Detectar caracteres basura al final (como tu 'w')
+  last_line=$(tail -n 1 "$output" | tr -d '[:space:]')
+  if [[ "$last_line" =~ ^[[:alpha:]]$ ]]; then
+    echo "Advertencia: posible carácter basura al final: '$last_line'"
+  fi
 done
 
-echo "Todos los scripts de Redis generados correctamente"
-echo "=== Fin de generación Redis scripts: $(date) ==="
+echo "Scripts Redis generados correctamente"
+echo "=== Fin generación Redis: $(date) ==="

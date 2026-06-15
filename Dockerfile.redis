@@ -18,7 +18,7 @@ RUN echo '#!/bin/sh' > /usr/local/bin/secure-entrypoint.sh && \
     echo 'for f in /docker-entrypoint-initdb.d/*.sh; do' >> /usr/local/bin/secure-entrypoint.sh && \
     echo '  if [ -f "$f" ]; then' >> /usr/local/bin/secure-entrypoint.sh && \
     echo '    echo "Ejecutando $f..."' >> /usr/local/bin/secure-entrypoint.sh && \
-    echo '    . "$f"' >> /usr/local/bin/secure-entrypoint.sh && \
+    echo '    sh "$f"' >> /usr/local/bin/secure-entrypoint.sh && \
     echo '  fi' >> /usr/local/bin/secure-entrypoint.sh && \
     echo 'done' >> /usr/local/bin/secure-entrypoint.sh && \
     echo '' >> /usr/local/bin/secure-entrypoint.sh && \
