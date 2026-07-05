@@ -2,3 +2,6 @@
 /postgres/generated
 /logs
 /.peuabva
+.idea
+.vs
+.vscode
